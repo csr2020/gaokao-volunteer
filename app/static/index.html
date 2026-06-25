@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="以位次为主的 2026 高考志愿冲稳保模拟推荐系统">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>志愿罗盘 · 2026 高考志愿模拟</title>
+  <link rel="stylesheet" href="/static/styles.css?v=2">
+</head>
+<body>
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <header class="nav shell">
+    <a class="brand" href="#"><span class="brand-mark">志</span><span>志愿罗盘<small>2026 SIMULATOR</small></span></a>
+    <div class="nav-note"><span class="live-dot"></span>广东模拟数据已就绪</div>
+  </header>
+
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">位次为主 · 三年加权 · 梯度清晰</p>
+        <h1>把一张志愿表，<br><em>变成有依据的选择。</em></h1>
+        <p class=”hero-copy”>2026 分数线已公布，各院校投档线预计 7 月中下旬发布。当前使用 2023—2025 三年加权位次预推。</p>
+      </div>
+      <div class=”hero-stamp”><b>4</b><span>YEARS<br>2023—2026</span></div>
+    </section>
+
+    <section class="workspace">
+      <form id="query-form" class="query-card" novalidate>
+        <div class="section-heading"><span>01</span><div><h2>考生信息</h2><p>排名比裸分更能跨年份比较</p></div></div>
+        <div class="field-grid">
+          <label><span>考生省份</span><select id="province"><option value="广东">广东</option></select></label>
+          <label><span>院校范围</span><select id="college-region">
+            <option value="全国">全国</option><option value="北京">北京</option><option value="天津">天津</option><option value="河北">河北</option><option value="山西">山西</option><option value="内蒙古">内蒙古</option><option value="辽宁">辽宁</option><option value="吉林">吉林</option><option value="黑龙江">黑龙江</option><option value="上海">上海</option><option value="江苏">江苏</option><option value="浙江">浙江</option><option value="安徽">安徽</option><option value="福建">福建</option><option value="江西">江西</option><option value="山东">山东</option><option value="河南">河南</option><option value="湖北">湖北</option><option value="湖南">湖南</option><option value="广东">广东</option><option value="广西">广西</option><option value="海南">海南</option><option value="重庆">重庆</option><option value="四川">四川</option><option value="贵州">贵州</option><option value="云南">云南</option><option value="西藏">西藏</option><option value="陕西">陕西</option><option value="甘肃">甘肃</option><option value="青海">青海</option><option value="宁夏">宁夏</option><option value="新疆">新疆</option>
+          </select></label>
+          <label><span>首选科目</span><select id="primary"><option value="物">物理</option><option value="史">历史</option></select></label>
+          <label><span>再选科目</span><select id="subjects"><option value="化生">化学 + 生物</option><option value="化地">化学 + 地理</option><option value="生地">生物 + 地理</option><option value="政地">政治 + 地理</option></select></label>
+          <label><span>高考分数</span><div class="input-unit"><input id="score" type="number" min="0" max="750" value="552" required><i>分</i></div></label>
+          <label class="wide rank-row">
+	            <div class="rank-input-area">
+	              <span>参考全省位次</span>
+	              <div class="input-unit"><input id="rank" type="number" min="1" value="78904" readonly required><i>名</i></div>
+	            </div>
+	            <div id="rank-years" class="rank-years">
+	              <div class="ryear"><span>2026</span><b>-</b></div>
+	              <div class="ryear"><span>2025</span><b>-</b></div>
+	              <div class="ryear"><span>2024</span><b>-</b></div>
+	              <div class="ryear"><span>2023</span><b>-</b></div>
+	            </div>
+	            <small id="rank-status" class="rank-status" style="flex-basis:100%">正在读取官方分数段数据…</small>
+	          </label>
+        </div>
+        <details>
+          <summary>自定义梯度范围与筛选 <span>高级</span></summary>
+          <div class="thresholds">
+            <label><span>冲击（落后不超过）</span><div class="input-unit"><input id="rush-gap" type="number" min="500" value="3000"><i>名</i></div></label>
+            <label><span>稳妥（领先不超过）</span><div class="input-unit"><input id="stable-gap" type="number" min="1000" value="5000"><i>名</i></div></label>
+            <label><span>保底（领先不超过）</span><div class="input-unit"><input id="secure-gap" type="number" min="2000" value="12000"><i>名</i></div></label>
+          </div>
+          <div class="program-filters">
+            <span>排除以下类型：</span>
+            <label class="filter-check"><input type="checkbox" class="exclude-type" data-type="联合培养" checked> <span>联合培养</span></label>
+            <label class="filter-check"><input type="checkbox" class="exclude-type" data-type="国际班" checked> <span>国际班</span></label>
+            <label class="filter-check"><input type="checkbox" class="exclude-type" data-type="协同培养" checked> <span>协同培养</span></label>
+            <label class="filter-check"><input type="checkbox" class="exclude-type" data-type="中外合作办学" checked> <span>中外合作办学</span></label>
+            <label class="filter-check"><input type="checkbox" class="exclude-type" data-type="地方专项" checked> <span>地方专项</span></label>
+            <label class="filter-check"><input type="checkbox" class="exclude-type" data-type="粤澳合作办学" checked> <span>粤澳合作办学</span></label>
+            <label class="filter-check"><input type="checkbox" class="exclude-type" data-type="学分互认" checked> <span>学分互认</span></label>
+            <label class="filter-check"><input type="checkbox" class="exclude-type" data-type="民办本科" checked> <span>民办本科</span></label>
+            <label class="filter-check"><input type="checkbox" class="exclude-type" data-type="民办大专" checked> <span>民办大专</span></label>
+          </div>
+        </details>
+        <button class="submit" type="submit"><span>生成我的志愿方案</span><b>→</b></button>
+        <p class="form-footnote">数据来源：广东省教育考试院 2023—2025 年投档数据，含 1002 所院校 9173 条专业组记录。</p>
+      </form>
+
+      <aside class="logic-card">
+        <div class="section-heading light"><span>02</span><div><h2>推荐逻辑</h2><p>不是拍脑袋，是可解释的位次差</p></div></div>
+        <div class="logic-track">
+          <article class="logic rush"><strong>冲</strong><div><b>30—50%</b><p>你的位次稍低于院校预测位次</p></div></article>
+          <article class="logic stable"><strong>稳</strong><div><b>70—82%</b><p>你的位次与院校基本匹配</p></div></article>
+          <article class="logic secure"><strong>保</strong><div><b>90—97%</b><p>你的位次明显领先院校预测位次</p></div></article>
+        </div>
+        <p class="logic-note">加权位次计算<br>2025 ×50% + 2024 ×30% + 2023 ×20%<br><small style="color:#9db4ae">2026 投档线发布后将纳入</small></p>
+      </aside>
+    </section>
+
+    <section id="results" class="results hidden" aria-live="polite">
+      <div class="result-top">
+        <div><p class="eyebrow">YOUR RECOMMENDATION</p><h2>志愿梯度建议</h2></div>
+        <div id="profile-chips" class="chips"></div>
+      </div>
+      <div id="empty-state" class="empty hidden">当前范围内没有匹配院校，试试调整位次或高级梯度范围。</div>
+      <div id="result-groups"></div>
+      <div class="disclaimer"><b>重要提示</b><p id="disclaimer-text"></p></div>
+    </section>
+  </main>
+  <footer class="shell">志愿罗盘 · 数据会说话，决定仍属于你 <span>2026</span></footer>
+  <script src="/static/app.js?v=2"></script>
+</body>
+</html>
