@@ -9,6 +9,7 @@ from pathlib import Path
 
 DATA_DIR = Path(__file__).parent / "data"
 PASSWORDS_PATH = DATA_DIR / "passwords.json"
+SEED_PATH = DATA_DIR / "passwords_seed.json"
 
 _lock = threading.Lock()
 _store: dict[str, dict] | None = None
@@ -21,10 +22,16 @@ def _log(msg: str) -> None:
 
 
 def _ensure_store() -> None:
-    """确保密码文件存在，不存在则自动生成。"""
-    if not PASSWORDS_PATH.exists():
+    """确保密码文件存在：优先从种子文件复制，否则自动生成。"""
+    if PASSWORDS_PATH.exists():
+        return
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    if SEED_PATH.exists():
+        _log("从 passwords_seed.json 初始化密码…")
+        PASSWORDS_PATH.write_text(SEED_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+        _log("已从种子文件复制")
+    else:
         _log("passwords.json 不存在，正在自动生成 10000 个密码…")
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
         pool = random.sample(range(1_000_000), 10000)
         data = {f"{n:06d}": {"remaining": _MAX_USES} for n in pool}
         PASSWORDS_PATH.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
@@ -43,8 +50,11 @@ def _load() -> dict[str, dict]:
     except (json.JSONDecodeError, OSError) as exc:
         _log(f"读取密码文件失败 ({exc})，正在重新生成…")
         DATA_DIR.mkdir(parents=True, exist_ok=True)
-        pool = random.sample(range(1_000_000), 10000)
-        _store = {f"{n:06d}": {"remaining": _MAX_USES} for n in pool}
+        if SEED_PATH.exists():
+            _store = json.loads(SEED_PATH.read_text(encoding="utf-8"))
+        else:
+            pool = random.sample(range(1_000_000), 10000)
+            _store = {f"{n:06d}": {"remaining": _MAX_USES} for n in pool}
         PASSWORDS_PATH.write_text(json.dumps(_store, ensure_ascii=False), encoding="utf-8")
         _log("已重新生成密码文件")
     return _store
