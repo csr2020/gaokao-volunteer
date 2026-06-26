@@ -196,5 +196,5 @@ def recommend_colleges(
         "summary": {key: len(value) for key, value in result.items()},
         "recommendations": result,
         "methodology": "2023—2025 三年最低位次按 20%/30%/50% 加权，位次为主、分数为辅。2026年院校投档线预计7月中下旬公布，当前参考2025年位次。",
-        "disclaimer": "本系统使用广东省教育考试院官方投档数据进行模拟推荐，不构成真实志愿填报或录取承诺。",
+        "disclaimer": "本系统所有数据及推荐结果仅供参考。高考志愿填报关乎未来，请务必以各省教育考试院及高校官网发布的最新官方政策、招生计划为准。建议结合多方渠道理性决策，祝广大考生金榜题名。",
     }

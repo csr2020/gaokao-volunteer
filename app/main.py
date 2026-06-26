@@ -52,7 +52,7 @@ def index() -> FileResponse:
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "data_mode": "real", "years": "2023-2025", "records": 9173, "colleges": 1002, "rank_source": "2026官方一分一段"}
+    return {"status": "ok", "data_mode": "real", "years": "2023-2025", "records": 13873, "colleges": 1002, "rank_source": "2026官方一分一段"}
 
 
 @app.get("/api/rank")
