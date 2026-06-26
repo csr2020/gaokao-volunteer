@@ -6,7 +6,7 @@
   <meta name="description" content="以位次为主的 2026 高考志愿冲稳保模拟推荐系统">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>志愿罗盘 · 2026 高考志愿模拟</title>
-  <link rel="stylesheet" href="/static/styles.css?v=2">
+  <link rel="stylesheet" href="/static/styles.css?v=3">
 </head>
 <body>
   <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
@@ -36,6 +36,13 @@
           <label><span>首选科目</span><select id="primary"><option value="物">物理</option><option value="史">历史</option></select></label>
           <label><span>再选科目</span><select id="subjects"><option value="化生">化学 + 生物</option><option value="化地">化学 + 地理</option><option value="生地">生物 + 地理</option><option value="政地">政治 + 地理</option></select></label>
           <label><span>高考分数</span><div class="input-unit"><input id="score" type="number" min="0" max="750" value="552" required><i>分</i></div></label>
+          <label class="wide"><span>使用密码</span>
+            <div class="password-row">
+              <div class="input-unit"><input id="password" type="text" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" placeholder="6位数字密码" required><i>密码</i></div>
+              <button type="button" id="check-password" class="btn-secondary">验证</button>
+              <small id="password-status" class="password-status"></small>
+            </div>
+          </label>
           <label class="wide rank-row">
 	            <div class="rank-input-area">
 	              <span>参考全省位次</span>
@@ -96,6 +103,6 @@
     </section>
   </main>
   <footer class="shell">志愿罗盘 · 数据会说话，决定仍属于你 <span>2026</span></footer>
-  <script src="/static/app.js?v=2"></script>
+  <script src="/static/app.js?v=3"></script>
 </body>
 </html>

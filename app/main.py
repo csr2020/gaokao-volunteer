@@ -7,10 +7,13 @@ from pydantic import BaseModel, Field, field_validator
 
 from .recommender import Thresholds, recommend_colleges
 from .rank_lookup import lookup_rank, lookup_rank_all_years
+from .password_auth import (validate_password, check_password as check_password_auth,
+                            admin_stats, admin_list_passwords, admin_set_owner,
+                            admin_reset_password, admin_generate_additional)
 
 
 BASE_DIR = Path(__file__).parent
-app = FastAPI(title="2026 高考志愿推荐模拟系统", version="1.0.0")
+app = FastAPI(title="2026 高考志愿推荐模拟系统", version="2.0.0")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 
@@ -23,6 +26,7 @@ async def no_cache_static(request, call_next):
 
 
 class RecommendationRequest(BaseModel):
+    password: str = Field(min_length=6, max_length=6, examples=["123456"])
     province: str = "广东"
     college_region: str = "全国"
     subjects: str = Field(min_length=2, max_length=3, examples=["物化生"])
@@ -70,7 +74,11 @@ def rank_all(score: int, primary: str = "物", province: str = "广东") -> dict
 def recommendations(payload: RecommendationRequest) -> dict:
     if payload.stable_gap >= payload.secure_gap:
         raise HTTPException(status_code=422, detail="保底范围必须大于稳妥范围")
-    return recommend_colleges(
+    # 验证密码并扣减次数
+    auth = validate_password(payload.password)
+    if not auth["valid"]:
+        raise HTTPException(status_code=403, detail=auth["message"])
+    result = recommend_colleges(
         payload.score,
         payload.rank,
         payload.subjects,
@@ -79,3 +87,55 @@ def recommendations(payload: RecommendationRequest) -> dict:
         payload.college_region,
         payload.exclude_program_types,
     )
+    result["password_remaining"] = auth["remaining"]
+    result["password_message"] = auth["message"]
+    return result
+
+
+@app.post("/api/password/check")
+def check_password_ep(password: str) -> dict:
+    """检查密码状态（不扣减次数）。"""
+    return check_password_auth(password)
+
+
+# ── 管理后台 API ─────────────────────────────────
+
+
+@app.get("/api/admin/stats")
+def admin_stats_ep(access: str = "") -> dict:
+    if access != "admin2026":
+        raise HTTPException(status_code=403, detail="无权限")
+    return admin_stats()
+
+
+@app.get("/api/admin/passwords")
+def admin_passwords_ep(page: int = 1, page_size: int = 50, filter_mode: str = "all", access: str = "") -> dict:
+    if access != "admin2026":
+        raise HTTPException(status_code=403, detail="无权限")
+    return admin_list_passwords(page, page_size, filter_mode)
+
+
+@app.post("/api/admin/set-owner")
+def admin_set_owner_ep(password: str, owner: str, notes: str = "", access: str = "") -> dict:
+    if access != "admin2026":
+        raise HTTPException(status_code=403, detail="无权限")
+    return admin_set_owner(password, owner, notes)
+
+
+@app.post("/api/admin/reset-password")
+def admin_reset_password_ep(password: str, remaining: int = 10, access: str = "") -> dict:
+    if access != "admin2026":
+        raise HTTPException(status_code=403, detail="无权限")
+    return admin_reset_password(password, remaining)
+
+
+@app.post("/api/admin/generate")
+def admin_generate_ep(count: int = 1000, access: str = "") -> dict:
+    if access != "admin2026":
+        raise HTTPException(status_code=403, detail="无权限")
+    return admin_generate_additional(count)
+
+
+@app.get("/admin", include_in_schema=False)
+def admin_page() -> FileResponse:
+    return FileResponse(BASE_DIR / "static" / "admin.html")

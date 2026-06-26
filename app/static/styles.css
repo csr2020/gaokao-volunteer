@@ -34,3 +34,20 @@ body{font-size:18px}.hero-copy{font-size:18px}.nav-note,.section-heading p{font-
 .filter-check:has(input:not(:checked)){background:#ebdfdf;color:#a05a5a;opacity:.7}
 .filter-check span{font-weight:500}
 @media(max-width:800px){.program-filters{gap:8px;justify-content:center}}
+
+/* 密码字段 */
+.password-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.password-row .input-unit{flex:1;min-width:160px}
+.password-row .input-unit input{font-family:monospace;letter-spacing:4px;font-size:24px}
+.btn-secondary{background:var(--deep);color:white;border:0;padding:10px 18px;border-radius:6px;font-size:14px;cursor:pointer;white-space:nowrap;transition:.15s}
+.btn-secondary:hover{background:#205a50}
+.password-status{font-size:13px;color:var(--muted);flex-basis:100%;min-height:20px}
+
+/* 密码剩余次数提示 */
+.password-info{margin-bottom:20px;padding:18px 24px;border-radius:8px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.password-info.password-warn{background:#fff3e0;border:1px solid #ffcc80;color:#bf5e00}
+.password-info.password-ok{background:#edf5ef;border:1px solid #c4ddd0;color:var(--secure)}
+.password-info h4{margin:0;font-size:16px;font-weight:700}
+.password-info h4 b{font-size:22px}
+.password-info p{margin:0;font-size:14px}
+@media(max-width:800px){.password-row{flex-direction:column;align-items:stretch}}

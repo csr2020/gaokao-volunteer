@@ -6,6 +6,9 @@ const scoreInput = document.querySelector('#score');
 const rankInput = document.querySelector('#rank');
 const primaryInput = document.querySelector('#primary');
 const rankStatus = document.querySelector('#rank-status');
+const passwordInput = document.querySelector('#password');
+const passwordStatus = document.querySelector('#password-status');
+const checkPasswordBtn = document.querySelector('#check-password');
 
 const labels = {
   rush: { title: '冲击', en: 'REACH', note: '值得尝试，建议服从调剂', icon: '↑' },
@@ -62,6 +65,18 @@ function render(data) {
   document.querySelector('#empty-state').classList.toggle('hidden', total > 0);
   document.querySelector('#disclaimer-text').textContent = `${data.disclaimer} ${data.methodology}`;
 
+  // Show password remaining count
+  if (data.password_remaining !== undefined) {
+    const remaining = data.password_remaining;
+    const msg = data.password_message || '';
+    const warnClass = remaining < 3 ? 'password-warn' : 'password-ok';
+    const html = `<section class="password-info ${warnClass}"><h4>密码剩余 <b>${remaining}</b> 次</h4><p>${msg}</p></section>`;
+    const refSection = document.querySelector('.reference-2026');
+    if (refSection) {
+      refSection.insertAdjacentHTML('beforebegin', html);
+    }
+  }
+
   // Append 2026 score line reference
   const refHtml = `<section class="reference-2026">
     <header><span style="font-size:24px">📊</span><div><h3>2026年广东（物理）省控线参考</h3><p>广东省教育考试院 2026.06.24 公布 · 院校投档线预计7月中下旬发布</p></div></header>
@@ -83,6 +98,26 @@ function render(data) {
   results.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+checkPasswordBtn.addEventListener('click', async () => {
+  const password = passwordInput.value.trim();
+  if (!password || password.length !== 6) {
+    passwordStatus.textContent = '请输入6位数字密码';
+    return;
+  }
+  passwordStatus.textContent = '验证中…';
+  try {
+    const response = await fetch(`/api/password/check?password=${encodeURIComponent(password)}`, { method: 'POST' });
+    const data = await response.json();
+    if (data.valid) {
+      passwordStatus.innerHTML = `✅ ${data.message}`;
+    } else {
+      passwordStatus.textContent = `❌ ${data.message}`;
+    }
+  } catch {
+    passwordStatus.textContent = '验证失败，请稍后重试';
+  }
+});
+
 form.addEventListener('submit', async event => {
   event.preventDefault();
   const rank = Number(rankInput.value);
@@ -92,7 +127,15 @@ form.addEventListener('submit', async event => {
   }
   submit.disabled = true;
   submit.querySelector('span').textContent = '正在计算三年位次…';
+  const password = passwordInput.value.trim();
+  if (!password || password.length !== 6) {
+    alert('请输入6位数字密码');
+    submit.disabled = false;
+    submit.querySelector('span').textContent = '生成我的志愿方案';
+    return;
+  }
   const body = {
+    password,
     province: document.querySelector('#province').value,
     college_region: document.querySelector('#college-region').value,
     subjects: document.querySelector('#primary').value + document.querySelector('#subjects').value,
