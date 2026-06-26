@@ -1,20 +1,24 @@
-"""密码验证、次数管理与管理模块。"""
+"""密码验证、次数管理、备份与管理模块。"""
 from __future__ import annotations
 
 import json
 import random
 import sys
 import threading
+import time
 from pathlib import Path
 
 DATA_DIR = Path(__file__).parent / "data"
 PASSWORDS_PATH = DATA_DIR / "passwords.json"
 SEED_PATH = DATA_DIR / "passwords_seed.json"
+BACKUP_DIR = DATA_DIR / "backups"
 
 _lock = threading.Lock()
 _store: dict[str, dict] | None = None
 _MAX_USES = 10
 _WARN_THRESHOLD = 3
+_MAX_BACKUPS = 200
+_last_backup_ts: float = 0  # 防止同一秒写太多备份
 
 
 def _log(msg: str) -> None:
@@ -65,12 +69,31 @@ def _save() -> None:
     if _store is not None:
         try:
             DATA_DIR.mkdir(parents=True, exist_ok=True)
-            PASSWORDS_PATH.write_text(
-                json.dumps(_store, ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
+            content = json.dumps(_store, ensure_ascii=False, indent=2)
+            PASSWORDS_PATH.write_text(content, encoding="utf-8")
+            # 自动创建时间戳备份（同1秒内只备份一次）
+            global _last_backup_ts
+            now = time.time()
+            if now - _last_backup_ts >= 1.0:
+                _last_backup_ts = now
+                BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+                ts = time.strftime("%Y%m%d_%H%M%S", time.localtime(now))
+                backup_path = BACKUP_DIR / f"passwords_{ts}.json"
+                backup_path.write_text(content, encoding="utf-8")
+                # 清理超过上限的旧备份
+                _clean_old_backups()
         except OSError as exc:
             _log(f"保存密码文件失败: {exc}")
+
+
+def _clean_old_backups(max_keep: int = _MAX_BACKUPS) -> None:
+    """保留最近 max_keep 个备份，删除更旧的。"""
+    try:
+        files = sorted(BACKUP_DIR.glob("passwords_*.json"), reverse=True)
+        for old in files[max_keep:]:
+            old.unlink()
+    except OSError:
+        pass
 
 
 # ── 公共 API ──────────────────────────────────────
@@ -235,3 +258,66 @@ def reload_store() -> None:
     with _lock:
         _store = None
         _load()
+
+
+# ── 备份管理 ──────────────────────────────────────
+
+
+def backup_list() -> list[dict]:
+    """列出所有可用备份（按时间倒序）。"""
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    files = sorted(BACKUP_DIR.glob("passwords_*.json"), reverse=True)
+    result = []
+    for path in files:
+        ts = path.stem.replace("passwords_", "")
+        try:
+            size = path.stat().st_size
+            # 读取备份中的概要统计
+            data = json.loads(path.read_text(encoding="utf-8"))
+            total = len(data)
+            active = sum(1 for e in data.values() if e["remaining"] > 0)
+            sold = sum(1 for e in data.values() if e.get("owner"))
+            result.append({
+                "filename": path.name,
+                "timestamp": ts,
+                "size": size,
+                "total": total,
+                "active": active,
+                "sold": sold,
+            })
+        except Exception as exc:
+            result.append({"filename": path.name, "timestamp": ts, "size": 0, "error": str(exc)})
+    return result
+
+
+def backup_restore(filename: str) -> dict:
+    """从指定备份文件恢复密码数据。"""
+    global _store
+    backup_path = BACKUP_DIR / filename
+    if not backup_path.exists():
+        return {"success": False, "message": f"备份文件 {filename} 不存在"}
+    if not backup_path.name.startswith("passwords_") or not backup_path.name.endswith(".json"):
+        return {"success": False, "message": "无效的备份文件名"}
+    with _lock:
+        try:
+            data = json.loads(backup_path.read_text(encoding="utf-8"))
+            # 先把当前状态存为备份（防误操作丢数据）
+            if _store is not None:
+                _save()
+            _store = data
+            PASSWORDS_PATH.write_text(
+                json.dumps(_store, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            _log(f"已从备份 {filename} 恢复，共 {len(data)} 个密码")
+            return {"success": True, "message": f"已从 {filename} 恢复，共 {len(data)} 个密码"}
+        except (json.JSONDecodeError, OSError) as exc:
+            return {"success": False, "message": f"恢复失败: {exc}"}
+
+
+def backup_export(filename: str) -> str | None:
+    """获取备份文件的绝对路径（用于导出下载）。"""
+    backup_path = BACKUP_DIR / filename
+    if backup_path.exists() and backup_path.name.startswith("passwords_") and backup_path.name.endswith(".json"):
+        return str(backup_path)
+    return None

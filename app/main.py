@@ -10,6 +10,7 @@ from .rank_lookup import lookup_rank, lookup_rank_all_years
 from .password_auth import (validate_password, check_password as check_password_auth,
                             admin_stats, admin_list_passwords, admin_set_owner,
                             admin_reset_password, admin_generate_additional,
+                            backup_list, backup_restore, backup_export,
                             reload_store, PASSWORDS_PATH)
 
 
@@ -166,3 +167,33 @@ def admin_import(payload: dict, access: str = "") -> dict:
     reload_store()
     count = len(data)
     return {"success": True, "message": f"已导入 {count} 个密码", "total": count}
+
+
+# ── 备份管理 API ─────────────────────────────────
+
+
+@app.get("/api/admin/backups")
+def admin_backups_ep(access: str = "") -> list:
+    """列出所有备份。"""
+    if access != "admin2026":
+        raise HTTPException(status_code=403, detail="无权限")
+    return backup_list()
+
+
+@app.post("/api/admin/backups/restore")
+def admin_backup_restore_ep(filename: str, access: str = "") -> dict:
+    """从指定备份文件恢复。"""
+    if access != "admin2026":
+        raise HTTPException(status_code=403, detail="无权限")
+    return backup_restore(filename)
+
+
+@app.get("/api/admin/backups/export")
+def admin_backup_export_ep(filename: str, access: str = "") -> FileResponse:
+    """下载指定备份文件到本地。"""
+    if access != "admin2026":
+        raise HTTPException(status_code=403, detail="无权限")
+    path = backup_export(filename)
+    if path is None:
+        raise HTTPException(status_code=404, detail="备份文件不存在")
+    return FileResponse(path, filename=filename, media_type="application/json")
