@@ -187,6 +187,7 @@ async function loadPasswords(page) {
         <td><input class="owner-input" id="notes-${item.password}" value="${notesVal}" placeholder="备注" style="width:120px"></td>
         <td style="white-space:nowrap">
           <button class="action-btn save" onclick="saveOwner('${item.password}')">保存</button>
+          <button class="action-btn" style="background:#2a6b8a;color:white" onclick="sellPwd('${item.password}')">售出</button>
           <button class="action-btn reset" onclick="resetPwd('${item.password}')">重置</button>
         </td>
       </tr>`;
@@ -211,6 +212,16 @@ async function saveOwner(password) {
   const data = await api('/api/admin/set-owner?password=' + encodeURIComponent(password)
     + '&owner=' + encodeURIComponent(owner) + '&notes=' + encodeURIComponent(notes), { method: 'POST' });
   if (data) showToast(data.message, 'success');
+  loadStats();
+}
+
+async function sellPwd(password) {
+  const name = prompt('输入购买者名称（如：张三）：');
+  if (!name || !name.trim()) return;
+  const data = await api('/api/admin/set-owner?password=' + encodeURIComponent(password)
+    + '&owner=' + encodeURIComponent(name.trim()), { method: 'POST' });
+  if (data) showToast(data.message, 'success');
+  loadPasswords(currentPage);
   loadStats();
 }
 
