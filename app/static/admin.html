@@ -85,6 +85,9 @@
       <input type="text" id="search-pwd" placeholder="搜索密码..." style="width:140px" oninput="loadPasswords(1)">
       <button onclick="loadPasswords(1)">刷新</button>
       <button onclick="toggleGenerate()">生成新密码</button>
+      <button onclick="exportData()">导出备份</button>
+      <button onclick="document.getElementById('import-file').click()">导入恢复</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
       <button onclick="doLogout()" class="danger">退出</button>
     </div>
 
@@ -246,6 +249,47 @@ async function doGenerate() {
     loadPasswords(1);
     loadStats();
   }
+}
+
+async function exportData() {
+  const data = await api('/api/admin/export');
+  if (!data || !data.data) return;
+  const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `passwords_backup_${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('备份文件已下载，部署后可通过"导入恢复"还原', 'success');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      const resp = await fetch('/api/admin/import?access=' + encodeURIComponent(ACCESS_TOKEN), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data }),
+      });
+      const result = await resp.json();
+      if (result.success) {
+        showToast(result.message, 'success');
+        loadStats();
+        loadPasswords(1);
+      } else {
+        showToast(result.message || '导入失败', 'error');
+      }
+    } catch (err) {
+      showToast('文件格式错误，请选择有效的 JSON 文件', 'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
 }
 
 // Enter key triggers login

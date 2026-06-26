@@ -9,7 +9,8 @@ from .recommender import Thresholds, recommend_colleges
 from .rank_lookup import lookup_rank, lookup_rank_all_years
 from .password_auth import (validate_password, check_password as check_password_auth,
                             admin_stats, admin_list_passwords, admin_set_owner,
-                            admin_reset_password, admin_generate_additional)
+                            admin_reset_password, admin_generate_additional,
+                            reload_store, PASSWORDS_PATH)
 
 
 BASE_DIR = Path(__file__).parent
@@ -139,3 +140,29 @@ def admin_generate_ep(count: int = 1000, access: str = "") -> dict:
 @app.get("/admin", include_in_schema=False)
 def admin_page() -> FileResponse:
     return FileResponse(BASE_DIR / "static" / "admin.html")
+
+
+@app.get("/api/admin/export")
+def admin_export(access: str = "") -> dict:
+    """导出所有密码数据（部署前备份用）。"""
+    if access != "admin2026":
+        raise HTTPException(status_code=403, detail="无权限")
+    import json
+    data = json.loads(PASSWORDS_PATH.read_text(encoding="utf-8"))
+    return {"success": True, "data": data}
+
+
+@app.post("/api/admin/import")
+def admin_import(payload: dict, access: str = "") -> dict:
+    """导入密码数据（部署后恢复用）。"""
+    if access != "admin2026":
+        raise HTTPException(status_code=403, detail="无权限")
+    data = payload.get("data")
+    if not data or not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="无效的数据格式")
+    import json, os
+    PASSWORDS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    PASSWORDS_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    reload_store()
+    count = len(data)
+    return {"success": True, "message": f"已导入 {count} 个密码", "total": count}

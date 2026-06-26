@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import random
+import sys
 import threading
 from pathlib import Path
 
@@ -15,31 +16,51 @@ _MAX_USES = 10
 _WARN_THRESHOLD = 3
 
 
+def _log(msg: str) -> None:
+    print(f"[password_auth] {msg}", file=sys.stderr)
+
+
 def _ensure_store() -> None:
     """确保密码文件存在，不存在则自动生成。"""
     if not PASSWORDS_PATH.exists():
+        _log("passwords.json 不存在，正在自动生成 10000 个密码…")
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
         pool = random.sample(range(1_000_000), 10000)
         data = {f"{n:06d}": {"remaining": _MAX_USES} for n in pool}
-        PASSWORDS_PATH.parent.mkdir(parents=True, exist_ok=True)
         PASSWORDS_PATH.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        _log("密码文件已生成")
 
 
 def _load() -> dict[str, dict]:
     global _store
-    if _store is None:
-        _ensure_store()
+    if _store is not None:
+        return _store
+    _ensure_store()
+    try:
         raw = PASSWORDS_PATH.read_text(encoding="utf-8")
         _store = json.loads(raw)
+        _log(f"已加载 {len(_store)} 个密码")
+    except (json.JSONDecodeError, OSError) as exc:
+        _log(f"读取密码文件失败 ({exc})，正在重新生成…")
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        pool = random.sample(range(1_000_000), 10000)
+        _store = {f"{n:06d}": {"remaining": _MAX_USES} for n in pool}
+        PASSWORDS_PATH.write_text(json.dumps(_store, ensure_ascii=False), encoding="utf-8")
+        _log("已重新生成密码文件")
     return _store
 
 
 def _save() -> None:
     global _store
     if _store is not None:
-        PASSWORDS_PATH.write_text(
-            json.dumps(_store, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        try:
+            DATA_DIR.mkdir(parents=True, exist_ok=True)
+            PASSWORDS_PATH.write_text(
+                json.dumps(_store, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            _log(f"保存密码文件失败: {exc}")
 
 
 # ── 公共 API ──────────────────────────────────────
