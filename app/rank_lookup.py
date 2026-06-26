@@ -37,8 +37,10 @@ def _read_rank_file(path: Path, column: str) -> dict[int, int]:
     return rows
 
 
-def _lookup_in_rows(rows: dict[int, int], score: int) -> int:
+def _lookup_in_rows(rows: dict[int, int], score: int) -> int | None:
     """在{score: rank}映射中查找给定分数的最佳匹配位次"""
+    if not rows:
+        return None
     if score in rows:
         return rows[score]
     if score > max(rows):
@@ -50,27 +52,29 @@ def _lookup_in_rows(rows: dict[int, int], score: int) -> int:
 
 
 def lookup_rank(score: int, primary: str, province: str = "广东") -> dict:
-    """（单年）仅返回最近一年的位次"""
+    """（单年）返回最近一年的位次（若最新年份无对应科目数据则向前查找）"""
     if province != "广东":
         return {"available": False, "message": f"暂未导入{province}的一分一段表"}
 
-    year, path = _latest_rank_file()
     column = "physics_rank" if primary == "物" else "history_rank"
-    rows = _read_rank_file(path, column)
-    rank = _lookup_in_rows(rows, score)
-    is_current = year == 2026
+    for year, path in _all_rank_files():
+        rows = _read_rank_file(path, column)
+        rank = _lookup_in_rows(rows, score)
+        if rank is not None:
+            is_current = year == 2026
+            return {
+                "available": True,
+                "rank": rank,
+                "score": score,
+                "primary": "物理" if primary == "物" else "历史",
+                "year": year,
+                "is_current": is_current,
+                "label": f"{year}年官方参考位次" if not is_current else "2026年官方位次",
+                "message": "" if is_current else "2026年夏季高考一分一段表尚未发布，当前采用最近一期官方数据作参考。",
+                "source": OFFICIAL_SOURCE_2026 if is_current else path.name,
+            }
 
-    return {
-        "available": True,
-        "rank": rank,
-        "score": score,
-        "primary": "物理" if primary == "物" else "历史",
-        "year": year,
-        "is_current": is_current,
-        "label": f"{year}年官方参考位次" if not is_current else "2026年官方位次",
-        "message": "" if is_current else "2026年夏季高考一分一段表尚未发布，当前采用最近一期官方数据作参考。",
-        "source": OFFICIAL_SOURCE_2026 if is_current else path.name,
-    }
+    return {"available": False, "message": "历史类一分一段数据暂未收录" if primary == "史" else f"暂未收录{primary}类一分一段数据"}
 
 
 def lookup_rank_all_years(score: int, primary: str, province: str = "广东") -> dict:
@@ -86,11 +90,15 @@ def lookup_rank_all_years(score: int, primary: str, province: str = "广东") ->
         rows = _read_rank_file(path, column)
         if rows:
             rank = _lookup_in_rows(rows, score)
-            years_data.append({
-                "year": year,
-                "rank": rank,
-                "is_current": year == max(f[0] for f in files),
-            })
+            if rank is not None:
+                years_data.append({
+                    "year": year,
+                    "rank": rank,
+                    "is_current": year == max(f[0] for f in files),
+                })
+
+    if not years_data:
+        return {"available": False, "message": f"暂未收录{primary}类一分一段数据"}
 
     return {
         "available": True,

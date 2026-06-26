@@ -85,13 +85,18 @@ function render(data) {
 
 form.addEventListener('submit', async event => {
   event.preventDefault();
+  const rank = Number(rankInput.value);
+  if (!rank || rank <= 1) {
+    alert('位次数据未就绪，请先确认首选科目是否正确（本系统目前仅收录物理类数据）');
+    return;
+  }
   submit.disabled = true;
   submit.querySelector('span').textContent = '正在计算三年位次…';
   const body = {
     province: document.querySelector('#province').value,
     college_region: document.querySelector('#college-region').value,
     subjects: document.querySelector('#primary').value + document.querySelector('#subjects').value,
-    score: Number(document.querySelector('#score').value), rank: Number(document.querySelector('#rank').value),
+    score: Number(document.querySelector('#score').value), rank,
     rush_gap: safeNumber('#rush-gap', 3000, 500),
     stable_gap: safeNumber('#stable-gap', 5000, 1000),
     secure_gap: safeNumber('#secure-gap', 12000, 2000),
